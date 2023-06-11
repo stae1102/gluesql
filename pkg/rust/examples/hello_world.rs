@@ -75,6 +75,32 @@ mod hello_world {
         };
 
         println!("Hello {}!", to_greet); // Will always output "Hello World!"
+
+        let insert_query: &str = "
+            UPDATE greet SET name = 'glue' WHERE name = 'World';
+        ";
+
+        glue.execute(insert_query).expect("Execution failed");
+
+        let result_after_updating: Vec<Payload> = glue.execute(queries).expect("Failed to execute");
+        
+        assert_eq!(result_after_updating.len(), 1);
+
+        let rows_after_updating: &Vec<Vec<Value>> = match &result_after_updating[0] {
+            Payload::Select { labels: _, rows } => rows,
+            _ => panic!("Unexpected result: {:?}", result_after_updating),
+        };
+
+        let second_row = &rows_after_updating[0];
+
+        let second_value = second_row.iter().next().unwrap();
+
+        let to_glue: &String = match second_value {
+            Value::Str(to_glue) => to_glue,
+            value => panic!("Unexpected type:{:?}", value),
+        };
+
+        println!("User has been changed to {}!", to_glue);
     }
 }
 
