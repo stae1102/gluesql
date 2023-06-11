@@ -3,7 +3,7 @@ mod utilize_various {
     use gluesql_core::ast_builder::{table, Build};
 
     use {
-        gluesql::prelude::{Glue, JsonStorage},
+        gluesql::prelude::{Glue, JsonStorage, MemoryStorage},
     };
 
     // Json 스토리지에 테이블 생성 및 조회
@@ -44,19 +44,69 @@ mod utilize_various {
             match sql {
                 Ok(sql) => {
                     let result = glue.execute_stmt(&sql).unwrap();
-                    println!("{:?}", result);
+                    println!("Executed in Json Storage about: {:?}", result);
                 }
                 Err(e) => {
-                    println!("{:?}", e);
+                    println!("Error occured in Json Storage:{:?}", e);
                 }
             }
         }
 
     }
 
+    // In-memory 스토리지에 테이블 생성 및 조회
+    pub fn hello_glue_api_from_memory() {
+        let json_storage = MemoryStorage::default();
+        let mut glue = Glue::new(json_storage);
+
+        let drop_table_if_exists = table("Hello").drop_table_if_exists().build();
+        
+        let create_table_query = table("Hello")
+            .create_table()
+            .add_column("id INTEGER")
+            // Gluesql에서는 string type으로 TEXT 타입만 제공
+            .add_column("name TEXT")
+            .build();
+
+        let insert_values_query = table("Hello")
+            .insert()
+            .columns("id, name")
+            .values(vec![
+                "1, 'glue'",
+                "2, 'seongtae'",
+                "3, 'sql'",
+            ])
+            .build();
+        
+        let select_query = table("Hello")
+        .select().project("*").build();
+    
+        let sqls = [
+            drop_table_if_exists,
+            create_table_query,
+            insert_values_query,
+            select_query,
+        ];
+
+        for sql in sqls {
+            match sql {
+                Ok(sql) => {
+                    let result = glue.execute_stmt(&sql).unwrap();
+                    println!("Executed in Memory Storage about: {:?}", result);
+                }
+                Err(e) => {
+                    println!("Error occured in Memory Storage: {:?}", e);
+                }
+            }
+        }
+
+    }
 }
 
 fn main() {
     #[cfg(feature = "json-storage")]
     utilize_various::hello_glue_api_from_json();
+
+    #[cfg(feature = "memory-storage")]
+    utilize_various::hello_glue_api_from_memory();
 }
