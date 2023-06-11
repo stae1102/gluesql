@@ -15,20 +15,21 @@ mod hello_world {
         /*
             Open a Sled database, this will create one if one does not yet exist
         */
-        let sled_dir = "/tmp/gluesql/hello_world";
+        let sled_dir: &str = "/tmp/gluesql/hello_world";
+        // 모든 콘텐츠를 삭제한다.
         fs::remove_dir_all(sled_dir).unwrap_or(());
-        let storage = SledStorage::new(sled_dir).expect("Something went wrong!");
+        let storage: SledStorage = SledStorage::new(sled_dir).expect("Something went wrong!");
         /*
             Wrap the Sled database with Glue
         */
-        let mut glue = Glue::new(storage);
+        let mut glue: Glue<SledStorage> = Glue::new(storage);
 
         /*
             Create table then insert a row
 
             Write queries as a string
         */
-        let queries = "
+        let queries: &str = "
             CREATE TABLE greet (name TEXT);
             INSERT INTO greet VALUES ('World');
         ";
@@ -38,28 +39,37 @@ mod hello_world {
         /*
             Select inserted row
         */
-        let queries = "
+        let queries: &str = "
             SELECT name FROM greet
         ";
 
-        let result = glue.execute(queries).expect("Failed to execute");
+        // raw query를 실행할 때는 execute 메서드 사용
+        let result: Vec<Payload> = glue.execute(queries).expect("Failed to execute");
 
         /*
             Query results are wrapped into a payload enum, on the basis of the query type
+            Payload Enum으로 덮인 쿼리 결과를 rows에 레퍼런스 벡터로 담는다.
         */
         assert_eq!(result.len(), 1);
-        let rows = match &result[0] {
+        let rows: &Vec<Vec<Value>> = match &result[0] {
             Payload::Select { labels: _, rows } => rows,
             _ => panic!("Unexpected result: {:?}", result),
         };
 
-        let first_row = &rows[0];
-        let first_value = first_row.iter().next().unwrap();
+        // 첫 번째 row
+        let first_row: &Vec<Value> = &rows[0];
+
+        /* 
+            이터레이터의 next() 메서드로 값 추출
+
+            Value enum으로 덮인 값을 추출
+        */
+        let first_value: &Value = first_row.iter().next().unwrap();
 
         /*
             Row values are wrapped into a value enum, on the basis of the result type
         */
-        let to_greet = match first_value {
+        let to_greet: &String = match first_value {
             Value::Str(to_greet) => to_greet,
             value => panic!("Unexpected type: {:?}", value),
         };
